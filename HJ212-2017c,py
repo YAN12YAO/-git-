@@ -1,0 +1,43 @@
+if __name__ == "__main__":
+    parser = HJ212Parser()
+
+    # ========== 标准示例报文测试（设置实时数据间隔） ==========
+    # 取自HJ212-2017附录C的标准示例，CRC校验值为1C80
+    sample_msg = (
+        "##0101QN=20160801085857223;ST=32;CN=1062;PW=100000;"
+        "MN=010000A8900016F000169DC0;Flag=5;"
+        "CP=&&RtdInterval=30&&1C80\r\n"
+    )
+
+    print("=== 1. 报文格式校验 ===")
+    print("格式是否合法：", parser.is_valid_message(sample_msg))
+
+    print("\n=== 2. CRC校验 ===")
+    print("CRC是否正确：", parser.validate_crc(sample_msg))
+
+    print("\n=== 3. 数据段结构化解析 ===")
+    parsed_result = parser.parse_data_segment(sample_msg)
+    for key, value in parsed_result.items():
+        if key == 'CP':
+            print(f"{key}: {value}")
+        else:
+            print(f"{key}: {value}")
+
+    # ========== 实时数据报文测试 ==========
+    # 构造实时数据报文
+    data_segment = (
+        "QN=20160801085857223;ST=32;CN=2011;PW=123456;"
+        "MN=010000A8900016F000169DC0;Flag=5;"
+        "CP=&&DataTime=20160801085857;w01001-Rtd=7.1;w01001-Flag=N;"
+        "w01018-Rtd=2.2;w01018-Flag=N;w01018-EFlag=A01&&"
+    )
+    # 计算CRC和长度
+    data_len = len(data_segment)
+    crc_value = parser._crc16(data_segment.encode('utf-8'))
+    crc_hex = f"{crc_value:04X}"
+    realtime_msg = f"##{data_len:04d}{data_segment}{crc_hex}\r\n"
+
+    print("\n=== 4. 监测因子提取 ===")
+    monitoring_data = parser.extract_monitoring_data(realtime_msg)
+    for factor, value in monitoring_data.items():
+        print(f"{factor}: {value}")
